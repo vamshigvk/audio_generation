@@ -2,7 +2,7 @@ import os
 import wave
 import json
 from flask import Flask, request
-from flask_restx import Api, Resource
+from flask_restx import Api, Resource, reqparse
 
 from vosk import Model, KaldiRecognizer
 
@@ -14,18 +14,17 @@ ns = api.namespace('speech_to_text', description='Speech to Text operations')
 model_path = '/path/to/vosk-model'  # Replace with the path to your Vosk model
 model = Model(model_path)
 
+# Define a parser for the audio file
+parser = reqparse.RequestParser()
+parser.add_argument('audio_file', location='files', required=True, help='WAV audio file to be recognized')
+
 @ns.route('/recognize')
 class SpeechToText(Resource):
     @api.doc('Recognize speech in an audio file')
     @api.expect(parser)
     def post(self):
-        audio_file = request.files.get('audio_file')
-
-        if not audio_file:
-            return {'message': 'Audio file not provided'}, 400
-
-        if not audio_file.filename.endswith('.wav'):
-            return {'message': 'Invalid file format, only WAV files are supported'}, 400
+        args = parser.parse_args()
+        audio_file = args['audio_file']
 
         recognizer = KaldiRecognizer(model, 16000)
         text = ""
